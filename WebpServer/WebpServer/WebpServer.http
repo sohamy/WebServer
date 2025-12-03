@@ -1,0 +1,6 @@
+@WebpServer_HostAddress = http://localhost:5201
+
+GET {{WebpServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
