@@ -1,3 +1,5 @@
+using WebpServer.Middlewares;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -18,9 +20,19 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseMiddleware<LoggingMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.MapGet("/hello", () => "Hello Kestrel!");
+
+app.MapPost("/echo", (Echo echo) =>
+{
+    return new { Received = echo.Message };
+});
+
 app.Run();
+
+public record Echo(string Message);
