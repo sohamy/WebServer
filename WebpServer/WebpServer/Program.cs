@@ -1,5 +1,6 @@
 using FluentValidation;
 using System.Reflection;
+using WebpServer;
 using WebpServer.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+builder.Services.AddWebpServer();
 
 var app = builder.Build();
 

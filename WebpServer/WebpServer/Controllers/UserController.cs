@@ -1,6 +1,8 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using WebpServer.Protocol;
+using WebpServer.Services;
+using System.Linq;
 
 namespace WebpServer.Controllers
 {
@@ -8,20 +10,23 @@ namespace WebpServer.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly IValidator<CreateUserRequest> _validator;
-        public UserController(IValidator<CreateUserRequest> validator)
+        private readonly IUserService _userService;
+        private readonly IValidator<CreateUserRequest> _createUserValidator;
+        public UserController(
+            IUserService userService,
+            IValidator<CreateUserRequest> createUserValidator)
         {
-            _validator = validator;
+            _userService = userService;
+            _createUserValidator = createUserValidator;
         }
 
         [HttpPost("fluent")]
         public async Task<IActionResult> CreateUserWithFluentValidation([FromBody] CreateUserRequest request)
         {
-            var result = await _validator.ValidateAsync(request);
+            var result = await _createUserValidator.ValidateAsync(request);
 
             if (!result.IsValid)
             {
-                // property별로 에러 묶어서 내려주는 예시
                 var errors = result.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(
@@ -36,30 +41,29 @@ namespace WebpServer.Controllers
                 });
             }
 
-            // TODO: 여기서부터 실제 저장 로직
-            return Ok(new { message = "User created with FluentValidation" });
+            // 2) 서비스에 실제 작업 위임
+            var user = await _userService.CreateUserAsync(request);
+
+            return Ok(user);
         }
 
         [HttpPost("data-annotations")]
-        public IActionResult CreateUserWithDataAnnotations([FromBody] CreateUserRequest request)
+        public async Task<IActionResult> CreateUserWithDataAnnotations([FromBody] CreateUserRequest request)
         {
-            // [ApiController]가 붙어 있으면,
-            // ModelState가 invalid일 때 자동으로 400을 리턴해 주기도 함.
-            // (커스터마이징을 위해 직접 체크하는 패턴도 알아두자)
-
             if (!ModelState.IsValid)
             {
-                // 기본 ProblemDetails 형식으로 리턴
                 return ValidationProblem(ModelState);
             }
 
-            return Ok(new { message = "User created with DataAnnotations" });
+            var user = await _userService.CreateUserAsync(request);
+            return Ok(user);
         }
 
         [HttpGet]
-        public string GetUsers()
+        public async Task<IActionResult> GetUsers()
         {
-            return "모든 유저 목록!";
+            var users = await _userService.GetUsersAsync(); // Task → 실제 데이터로 꺼내기
+            return Ok(users);                               // 200 OK + JSON 바디
         }
 
         [HttpGet("detail")]
@@ -76,10 +80,14 @@ namespace WebpServer.Controllers
             return $"검색: name={name}, age={age}";
         }
 
-        [HttpGet("{id}")]
-        public string GetById(int id)
+        [HttpGet("{id:guid}")]
+        public async Task<IActionResult> GetById(Guid id)
         {
-            return $"유저 ID = {id}";
+            var user = await _userService.GetUserAsync(id);
+            if (user == null)
+                return NotFound();
+
+            return Ok(user);
         }
 
         [HttpGet("{id}/inventory")]
