@@ -1,19 +1,38 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
+using Polly;
+using System;
+using WebpServer.External;
 using WebpServer.Repositories;
 using WebpServer.Services;
 
 namespace WebpServer
 {
-    // DI 등록을 모아두는 확장 메서드
     public static class ServiceCollectionExtensions
     {
         public static IServiceCollection AddWebpServer(this IServiceCollection services)
         {
-            // Service 계층 등록
-            services.AddScoped<IUserService, UserService>();
-
-            // Repository 계층 등록
             services.AddScoped<IUserRepository, InMemoryUserRepository>();
+
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<ITimeService, TimeService>();
+
+            services
+                .AddHttpClient<TimeApiClient>()
+                .AddResilienceHandler("timeapi", builder =>
+                {
+                    // 1) 전체 요청 타임아웃
+                    builder.AddTimeout(TimeSpan.FromSeconds(3));
+
+                    // 2) 재시도 전략
+                    builder.AddRetry(new HttpRetryStrategyOptions
+                    {
+                        MaxRetryAttempts = 3,
+                        Delay = TimeSpan.FromMilliseconds(200),
+                        BackoffType = DelayBackoffType.Exponential,
+                        UseJitter = true
+                    });
+                });
 
             return services;
         }
