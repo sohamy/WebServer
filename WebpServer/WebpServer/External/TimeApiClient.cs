@@ -14,7 +14,6 @@ namespace WebpServer.External
 
             // SSL 문제 회피용: 학습/테스트 환경이니까 HTTP 사용
             _httpClient.BaseAddress ??= new Uri("http://worldtimeapi.org/api/");
-            // 참고: curl 예제도 이렇게 되어 있음 → http://worldtimeapi.org/api/timezone/Asia/Tokyo :contentReference[oaicite:1]{index=1}
         }
 
         public async Task<string> GetSeoulTimeRawAsync()

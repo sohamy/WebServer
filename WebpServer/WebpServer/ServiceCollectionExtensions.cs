@@ -4,6 +4,7 @@ using Polly;
 using System;
 using WebpServer.External;
 using WebpServer.Repositories;
+using WebpServer.Service;
 using WebpServer.Services;
 
 namespace WebpServer
@@ -13,10 +14,13 @@ namespace WebpServer
         public static IServiceCollection AddWebpServer(this IServiceCollection services)
         {
             services.AddScoped<IUserRepository, InMemoryUserRepository>();
-
             services.AddScoped<IUserService, UserService>();
-            services.AddScoped<ITimeService, TimeService>();
 
+
+            services.AddSingleton<IScoreRepository, InMemoryScoreRepository>();
+            services.AddScoped<IScoreService, ScoreService>();
+
+            services.AddScoped<ITimeService, TimeService>();
             services
                 .AddHttpClient<TimeApiClient>()
                 .AddResilienceHandler("timeapi", builder =>
